@@ -53,15 +53,6 @@
                   (length m2)))))
 
 
-
-
-      (if (and (null? m1) (null? m2))
-          #t
-          (and (= (length m1) (length m2)) 
-               (and  (= (length (car m1)) (length (car m2)))  
-                     (addable (cdr m1) (cdr m2))))))     
-
-
 ;;multiplying two matrices
 (define (multipliable? m1 m2)
      (= (length (car m1))
