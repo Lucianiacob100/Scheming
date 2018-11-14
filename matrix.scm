@@ -165,7 +165,7 @@
     (let* ( (l1 (length (car matrix)))
             (l2 (length matrix))           ;;continuation-passing-style
             (dif (- l1 l2 ))               ;; counter is an index of retrieval for list-ref
-            (len   (if (> dif 0)           ;; fn is a function appied at the end of the process 
+            (len   (if (> dif 0)           
                        (-  l1   (1+ dif)) 
                        (- l1 1))))
        (if (> counter len)
@@ -183,8 +183,8 @@
  (define (minor-diagonal matrix)
      (let ((m 
    (call-with-current-continuation   
-    (lambda (cont)         ;; breaking the fold using a continuation 
-      (fold-left
+    (lambda (cont)         ;; breaking the fold using a continuation if needed
+      (fold-left           ;;avoiding useless calculation
         (lambda (ac line)
            (let*  ((i-ac (cdr ac)) 
                    (l-ac (append (car ac)
@@ -284,6 +284,7 @@
      (define (first-line-minors matrix)
                (car (all-minors matrix)))
 
+     ;; the main function which calculates the determinant for a mxm matrix 
 (define (determinant matrix)
     (cond ((is-n-mat? matrix 3) (det-ord-3 matrix))
           ((is-n-mat? matrix 2) (det-ord-2 matrix))
