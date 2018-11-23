@@ -1,6 +1,7 @@
 
+   ;;some functions on matrices
 
-
+ 
  ;;compares the length of the each line in a matrix
  ;; with the length of the first line
  (define (is-matrix? ls)
@@ -9,7 +10,85 @@
               (res-l (cdr ls)))
             (fold-left    (lambda (a b) (and a (=  len (length b) )))   #t res-l ))
          (error "not a matrix!_emtpty list"))) 
-        
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;identity matrix of n size
+
+ (define (identity-matrix n_size)
+ 
+  (define matrix '())
+
+  (define ind 0)
+ 
+   (define (add-line)
+      (let* ((vec (make-vector n_size 0))
+             (nl (vector-set! vec ind 1))
+             (__ (set! ind (1+ ind))))
+          (set! matrix (append matrix  (list vec)))))
+          
+   (define (loop fn  times)
+         (if (= times 0)
+             matrix
+             (begin 
+                 (fn)
+                 (loop fn (- times 1)))))
+
+    (loop add-line n_size ))  
+               
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;searching for an element in a matrix
+ (define (search elem mat)
+   (define colnr (- (length (car mat)) 1))
+   (define rownr (- (length mat) 1))
+  
+   (define row-ind 0)
+
+   (define col-ind 0)
+ 
+   (define search-results '())
+
+   (define (copy-indeces vals)
+          (set! search-results
+                (append search-results 
+                       (list vals))))
+
+    (define (search-next e ri ci) ;;mutual recursive functions
+           (if (= ri -1)                         
+               search-results
+               (if (and (= ri rownr) (= ci colnr))
+                   (begin
+                     (copy-indeces (cons ri ci))
+                     (search-next e -1 -1))
+                   (let* ((next-ci (if (<= ci (- colnr 1)) 
+                                       (1+ ci)   
+                                        0))
+                          (next-ri (if (= ci colnr)
+                                       (1+ ri)
+                                       ri)))
+                     (begin
+                       (copy-indeces (cons ri ci))
+                       (search-through-lines e next-ri next-ci))
+                     ))))     ;; calls search-through-lines with next indeces
+ 
+   ;;main function which performs the search in the matrix
+  (define (search-through-lines e ri ci)
+        (let* ((sl (list-ref mat ri))   
+               (sc (list-ref sl ci)))
+           (if (= e sc)
+               (search-next e ri ci)   ;;continues the search if a match is found
+               (if (not (= ci colnr))  ;;calls search-next
+                    (begin
+                        (search-through-lines e ri (1+ ci)))         
+                    (if (not (= ri rownr))
+                        (begin
+                            (search-through-lines e (1+ ri) 0)
+                                 )
+                        (search-next  e -1 -1) )))))
+           (search-through-lines elem row-ind col-ind)
+      )    
+    
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;       
 
 ;;multiplying matrix by a scalar
  (define (mult-m-s matrix scal)
@@ -53,6 +132,8 @@
                   (length m2)))))
 
 
+
+
 ;;multiplying two matrices
 (define (multipliable? m1 m2)
      (= (length (car m1))
@@ -71,12 +152,10 @@
           (cons (line-by-column ls (map car mat))
                 (mult-line-by-colmns ls (map cdr mat)))))
 
- (define (line-by-column ln col)
-       (if (null? ln)
-           0
-           (+ (* (car ln) (car col)) 
-              (line-by-column (cdr ln) (cdr col)))))
-                  
+ 
+(define (line-by-column ln col)
+     (sum-of-products ln col))   
+               
 
 (define (*m m1 m2)
  (if (not (and (is-matrix? m1) (is-matrix? m2))) 
@@ -165,7 +244,7 @@
     (let* ( (l1 (length (car matrix)))
             (l2 (length matrix))           ;;continuation-passing-style
             (dif (- l1 l2 ))               ;; counter is an index of retrieval for list-ref
-            (len   (if (> dif 0)           
+            (len   (if (> dif 0)          
                        (-  l1   (1+ dif)) 
                        (- l1 1))))
        (if (> counter len)
@@ -183,8 +262,8 @@
  (define (minor-diagonal matrix)
      (let ((m 
    (call-with-current-continuation   
-    (lambda (cont)         ;; breaking the fold using a continuation if needed
-      (fold-left           ;;avoiding useless calculation
+    (lambda (cont)         ;; breaking the fold using a continuation 
+      (fold-left
         (lambda (ac line)
            (let*  ((i-ac (cdr ac)) 
                    (l-ac (append (car ac)
@@ -238,7 +317,7 @@
                             (mult-ls-by-seq (cdr l) rest)))))    
 
 
-        (mult-ls-by-seq l (alter-seq starting seq)) )
+        (mult-ls-by-seq l (alter-seq starting-seq)) )
 
  ;;
 
@@ -284,7 +363,7 @@
      (define (first-line-minors matrix)
                (car (all-minors matrix)))
 
-     ;; the main function which calculates the determinant for a mxm matrix 
+     ;;the main function which calculates the determinant for a n x n matrix
 (define (determinant matrix)
     (cond ((is-n-mat? matrix 3) (det-ord-3 matrix))
           ((is-n-mat? matrix 2) (det-ord-2 matrix))
@@ -370,4 +449,3 @@
                 (display "the determinant is zero"))))                               
       ))
                      
-
