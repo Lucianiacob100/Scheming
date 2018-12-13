@@ -34,7 +34,7 @@
                  (loop fn (- times 1)))))
 
     (loop add-line n_size ))  
-               
+
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;searching for an element in a matrix
  (define (search elem mat)
@@ -86,7 +86,20 @@
                         (search-next  e -1 -1) )))))
            (search-through-lines elem row-ind col-ind)
       )    
-    
+    ;;memoized search for a list of elements in a matrix
+ (define (memoized-search ls-elem matrix)
+   
+  (define (memo e)
+    (let ((already-searched? #f)
+          (result     #f))
+        (lambda ()
+          (if (not already-searched?)
+              (let ((res (search e matrix)))
+                 (begin (set! already-searched? #t)
+                        (set! result res)
+                        result))
+              result))))
+    (map (lambda (e) ((memo e)) ) ls-elem))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;       
 
@@ -363,7 +376,6 @@
      (define (first-line-minors matrix)
                (car (all-minors matrix)))
 
-     ;;the main function which calculates the determinant for a n x n matrix
 (define (determinant matrix)
     (cond ((is-n-mat? matrix 3) (det-ord-3 matrix))
           ((is-n-mat? matrix 2) (det-ord-2 matrix))
