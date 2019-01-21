@@ -2,14 +2,27 @@
    ;;some functions on matrices
 
  
+
+  (define (evaluate expr)
+        (eval expr user-initial-environment))
+
+ (define (eval-bool-ls lsb)
+      (evaluate (cons 'and lsb)))
+
+ (define (list-of-nr? ls) 
+      (eval-bool-ls 
+           (map number? ls))) 
+
  ;;compares the length of the each line in a matrix
  ;; with the length of the first line
  (define (is-matrix? ls)
     (if (not (null? ls))
         (let ((len (length (car ls)))   
-              (res-l (cdr ls)))
-            (fold-left    (lambda (a b) (and a (=  len (length b) )))   #t res-l ))
-         (error "not a matrix!_emtpty list"))) 
+              (res-l (cdr ls))
+              (b-ls (map list-of-nr? ls )))
+        (and (eval-bool-ls b-ls)   
+            (fold-left    (lambda (a b) (and a (=  len (length b) )))   #t res-l )))
+        #f))
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;identity matrix of n size
@@ -32,10 +45,200 @@
              (begin 
                  (fn)
                  (loop fn (- times 1)))))
-
-    (loop add-line n_size ))  
+  (map vector->list
+    (loop add-line n_size )
+     )
+   )  
 
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+ (define (zip-with l1 l2 op)
+       (if (null? l1)
+           '()
+            (cons
+             (op (car l1) (car l2))
+             (zip-with (cdr l1) (cdr l2) op))))
+
+ ;;fundamental operations on matrices
+ ;; interchange any two rows
+ ;;fast swap -- dependent on the i2
+ (define (swap i1 i2 matrix)
+      (define (check-ind)
+          (let ((len (length matrix))) 
+              (or
+                (> i1 i2)  
+                (or (> i1 len) (> i2 len)))))
+      (define t1 '())
+      (define t2  '())
+      (define (find-var i1 i2 matrix)
+        (cond  
+            ((= i1 0) 
+             (begin (set! t1 (car matrix))
+                    (find-var (- i1 1) (- i2 1) (cdr matrix))))
+            ((= i2 0) 
+             (begin (set! t2 (car matrix))))
+            (else (find-var (- i1 1) (- i2 1) (cdr matrix)))))
+     (if (check-ind)
+         (error "incorrect indeces")             
+         (begin (find-var i1 i2 matrix)
+                (list-set! matrix i1 t2)
+                (list-set! matrix i2 t1))))
+
+  (define (interchange-rows i1 i2 matrix)
+           (if (is-matrix? matrix)
+               (swap i1 i2 matrix)
+               (error "not a matrix")))
+  
+ ;;multiply row by scalar
+ (define (*row ind matrix scalar)
+     (list-set! matrix ind
+               (map (lambda (e) (* e scalar))
+                    (list-ref matrix ind)))))
+
+ ;;add row by another row multiplied by a scalar
+    (define (+adr i1 i2 scalar matrix)
+           (let* ((r1 (list-ref matrix i1))
+                  (r1m (map (lambda (e) (* e scalar)) r1))
+                  (r2  (list-ref matrix i2)))
+               (list-set! matrix i2 (zip-with r1m r2 +)))) 
+
+;; interchange two columns
+ (define (interchange-columns i1 i2 matrix)
+      (for-each (lambda (r) (swap i1 i2 r)) matrix))   
+
+;;multiply column by scalar  
+ (define (*col-s matrix ind scalar)
+     (for-each (lambda (r) 
+                (list-set! r ind
+                  (* scalar (list-ref r ind))))
+               matrix ))  
+;;add columns by another column multiplied by a scalar
+
+ (define (+adc i1 i2 matrix scalar)
+    (define (add r)
+       (list-set! r i2 (+ (* scalar (list-ref r i1)) (list-ref r i2))))
+   (for-each (lambda (row) (add row)) matrix))
+            
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;check if row-echalon form
+
+   (define (zero-or-null row)
+                   (cond ((null? row) #t)
+                         ((zero? (car row))
+                          (and #t (zero-or-null (cdr row))))
+                         (else #f)))
+                                  
+
+ (define (count-rows matrix p-ind ind)
+    (let ((z (car p-ind))
+          (nz (cdr p-ind))
+          (l  (- (length matrix) 1))
+          (ap (lambda (ls e) (append ls (list e))))
+          (next (1+ ind)))
+     (if  (null? matrix)
+          p-ind
+          (cond ((zero-or-null (car matrix))
+                 (count-rows (cdr matrix) (cons (ap z ind) nz) next ))
+                (else 
+                 (count-rows (cdr matrix) (cons z (ap nz ind)) next ))))))
+ ;;defining error messages
+  (define (first-condition-failed)
+       (error ""))
+  (define (second-condition-failed)
+       (error ""))
+  (define (third-condition-failed)
+       (error ""))
+  (define (forth-condition-failed)
+       (error ""))
+  (define (check-conditions matrix)
+        (let* ((p (count-rows matrix (cons '() '()) 0))
+               (z (car p))
+               (nz (cdr p))
+               (le (last nz)))
+      
+     (define (first-condition)
+          (if (null? z)
+              #t
+              (> (car z) le)))
+      
+      
+      (define (get-rows ls-ind)
+                   (if (null? ls-ind)
+                       '()
+                       (cons (list-ref matrix (car ls-ind))
+                             (get-rows (cdr ls-ind)))))
+     (define matr  (get-rows nz))  
+
+       (define (find-unity-ind row i)
+              (if (= (car row) 1)
+                  i
+                  (find-unity-ind (cdr row) (1+ i))))
+     
+      (define (second-condition)
+            (define (check-if-unit ls)
+                  (cond ((null? ls) #t)
+                        ((= (car ls) 0)
+                         (check-if-unit (cdr ls)))
+                        ((= (car ls) 1)
+                         #t)
+                        ((not (= (car ls) 1))
+                         #f)))  
+             (eval-bool-ls
+                    (map check-if-unit 
+                         matr)))
+
+      (define (third-condition)
+         (define (get-elems ci mt)
+                  (if (null? mt)
+                      '()
+                      (cons (list-ref (car mt) ci)
+                            (get-elems ci (cdr mt)))))
+          ;;calculating column index                 
+       
+         (define (gather-all-sb mat)
+               (let* ((ci '())
+                      (m  mat))
+                (map
+                  (lambda (row)         
+                       (begin (set! m (cdr m))
+                              (set! ci (find-unity-ind row 0))
+                              (get-elems ci m)))
+                  mat)))
+       
+         (eval-bool-ls  
+          (map zero-or-null (gather-all-sb matr))))
+
+        (define (find-unity-ind2 row)
+                (find-unity-ind row 0))
+                  
+       (define (forth-condition)
+            (let ((inds (map find-unity-ind2 matr)))
+               (define (in-order? ls)
+                     (cond ((null? ls) #t)
+                           ((= (length ls) 1) #t)
+                           ((= (length ls) 2) (< (car ls) (cadr ls)))
+                           (else
+                  (and  
+                    (< (car ls)
+                       (apply min (cdr ls)))    
+                    (in-order? (cdr ls))))))      
+               (in-order? inds)))
+
+      ;;checking all the conditions
+      (if (not (first-condition))
+         (first-condition-failed) 
+         (if (not (second-condition))
+             (second-condition-failed)
+             (if (not (third-condition))
+                 (third-condition-failed)
+                 (if (not (forth-condition))
+                     (forth-condition-failed)
+                     (display "matrix is in row-form echalon!\n")
+                   ))))                  
+           ))
+
+
+
   ;;searching for an element in a matrix
  (define (search elem mat)
    (define colnr (- (length (car mat)) 1))
@@ -86,8 +289,9 @@
                         (search-next  e -1 -1) )))))
            (search-through-lines elem row-ind col-ind)
       )    
-    ;;memoized search for a list of elements in a matrix
+    ;;memoization
  (define (memoized-search ls-elem matrix)
+
    
   (define (memo e)
     (let ((already-searched? #f)
@@ -101,7 +305,7 @@
               result))))
     (map (lambda (e) ((memo e)) ) ls-elem))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;       
+;;;;;;;;
 
 ;;multiplying matrix by a scalar
  (define (mult-m-s matrix scal)
@@ -111,13 +315,6 @@
                  line))
          matrix)
     (display "not a matrix\n\n")))
-
- (define (zip-with l1 l2 op)
-       (if (null? l1)
-           '()
-            (cons
-             (op (car l1) (car l2))
-             (zip-with (cdr l1) (cdr l2) op))))
 
    (define (sum-of-products l1 l2)
          (apply + (zip-with l1 l2 *))
@@ -328,8 +525,6 @@
                          (rest (tail sq)))
                       (cons (* (car l) x)
                             (mult-ls-by-seq (cdr l) rest)))))    
-
-
         (mult-ls-by-seq l (alter-seq starting-seq)) )
 
  ;;
@@ -341,9 +536,6 @@
  (define (det-ord-2 matrix)
       (- (* (caar matrix) (cadar (cdr matrix)))
          (* (cadar matrix) (caadr matrix))))
-
-
-
 
  
  (define (delete-column matrix ind)
@@ -386,7 +578,7 @@
  
 
 
-
+ ;;triangle rule for 3 X 3
   (define (det-ord-3 matrix )
       (- (+  (apply * (major-diagonal matrix))
              (* (caadr matrix)  (car (cdr (caddr matrix)))
@@ -440,7 +632,7 @@
 
 
 ;;;;;;;;;martrix inverse
-
+ 
  (define (inverse matrix)
           (let* ((det-A (determinant matrix))
                  (trans-m (transpose matrix))
@@ -461,3 +653,10 @@
                 (display "the determinant is zero"))))                               
       ))
                      
+
+ (define (invertible? matrix)
+            (let* ((s (length matrix))
+                   (i-m (identity-matrix s))
+                   (inv (iverse matrix)))
+                (equal-mt? (*m matrix inv)
+                        i-m ) ))
