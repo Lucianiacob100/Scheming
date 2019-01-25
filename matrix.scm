@@ -233,12 +233,63 @@
                  (third-condition-failed)
                  (if (not (forth-condition))
                      (forth-condition-failed)
-                     (display "matrix is in row-form echalon!\n")
+                     (display "matrix is in row-form echelon!\n")
                    ))))                  
            ))
 
 
+;;transform a matrix into row-echelon form
 
+
+ (define (search-in-ls criterion ls ind) ;;until criterion is met
+       (cond ((null? ls) -1)
+             ((criterion (car ls)) ind)
+             (else 
+                (search-in-ls criterion (cdr ls) (1+ ind) ))))
+
+ (define (search-nz  sri matrix)
+      (if (= sri (length matrix))
+          #t
+           (let* ((mat (drop matrix sri))
+                  (temp-ci (search-in-ls (lambda (x) (not (= x 0))) (car mat)   0)))
+              (if (not (= temp-ci -1))
+                  (list sri temp-ci)
+                  (search-nz (1+ sri) matrix)))))
+               
+    (define (col ind m)
+          (map (lambda (row)
+                  (list-ref row ind))
+               m))
+          
+              
+ ;;transform a matrix to row form echelon
+ (define (row-form-ech r matrix)
+    (if (= r (length matrix))
+        'done
+        (let* (
+               (prc (search-nz 0 matrix))
+               (ri (car prc))
+               (ci (cadr prc))
+               (cln (col ci matrix)))
+           (begin (if (not (= ri r))
+                  (interchange-rows r ri matrix))
+                  (let ((pivot (list-ref (list-ref matrix r) ci)))
+                      (if (not (= pivot 1))
+                          (*row r matrix (/ 1 pivot))))
+                 (define (next-step)
+                     (let* ((cln2 (drop cln (1+ r)))
+                            (i  (search-in-ls (lambda (x) (not (= x 0))) cln2 0))
+                            (new-ri (+ r i 1)))
+                         (if (= i -1)
+                             (row-form-ech (1+ r) matrix)
+                             (let ((n (list-ref matrix new-ri))
+                                   (v (list-ref n ci))) 
+                                 (begin     
+                                   (+adr r n (* -1 v) matrix)
+                                   (next-step))))))
+                  (next-step)))))
+      
+             
   ;;searching for an element in a matrix
  (define (search elem mat)
    (define colnr (- (length (car mat)) 1))
