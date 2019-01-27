@@ -60,34 +60,41 @@
              (zip-with (cdr l1) (cdr l2) op))))
 
  ;;fundamental operations on matrices
- ;; interchange any two rows
- ;;fast swap -- dependent on the i2
- (define (swap i1 i2 matrix)
-      (define (check-ind)
-       (let ((ml (- (length matrix) 1)))
-             (or (> i1 ml) (> i2 ml))
-              ))
-      (define t1 '())
-      (define t2  '())
-      (define (find-var i1 i2 matrix)
-        (cond  
-            ((= i1 0) 
-             (begin (set! t1 (car matrix))
-                    (find-var (- i1 1) (- i2 1) (cdr matrix))))
-            ((= i2 0) 
-             (begin (set! t2 (car matrix))))
-            (else (find-var (- i1 1) (- i2 1) (cdr matrix)))))
-     (if (check-ind)
-         (error "incorrect indeces")
-         (if (> i1 i2)
-              (swap i2 i1 matrix )            
-              (begin (find-var i1 i2 matrix)
-                     (list-set! matrix i1 t2)
-                     (list-set! matrix i2 t1)))))
 
+ ;;fast swap -- traverse the list twice 
+           ;; first time-- the first i2 elems
+           ;; second time -- the first i1 elems
+          (define (fast-swap i1 i2 lst)
+                (if (> i1 i2) (fast-swap i2 i1 lst))
+                (let ((ln (- (length lst) 1)))
+                  (if (or (> i1 ln) (> i2 ln))
+                      (error "incorrect indecen")))
+                   (define i1-2 i1)
+                   (define t1 0)
+                   (define t2  0)
+                   (define  (loop ls) 
+                      (cond ((null? ls) '())
+                            ((= i1 0)
+                             (begin (set! t1 (car ls))
+                                    (set! i1 (- i1 1))
+                                    (set! i2 (- i2 1))
+                                    (cons (car ls) (loop (cdr ls)))))
+                            ((= i2 0)
+                             (begin (set! t2 (car ls))
+                                    (set-car! ls t1)
+                                     ls) )
+                            (else (begin
+                                   (set! i1 (- i1 1))
+                                   (set! i2 (- i2 1))
+                                   (cons (car ls) (loop (cdr ls)))))))
+               (begin 
+                      (loop lst)
+                      (list-set! lst i1-2 t2)
+                      'ok  ))           
+    ;; interchange any two rows
   (define (interchange-rows i1 i2 matrix)
            (if (is-matrix? matrix)
-               (swap i1 i2 matrix)
+               (fast-swap i1 i2 matrix)
                (error "not a matrix")))
   
  ;;multiply row by scalar
@@ -250,7 +257,7 @@
 
  (define (search-nz  sri matrix)
       (if (= sri (length matrix))
-          'done_nz
+          'done
            (let* ((mat (drop matrix sri))
                   (temp-ci (search-in-ls (lambda (x) (not (= x 0))) (car mat)   0)))
               (if (not (= temp-ci -1))
@@ -269,7 +276,9 @@
         'done
         (let* ( 
                (prc (search-nz r matrix))
-               (ri (car prc))
+               (ri (if (equal? prc 'done) 
+                        (error 'done) 
+                        (car prc)))
                (ci (cadr prc))
                (cln (col ci matrix)))
            (begin (if (not (= ri r))
