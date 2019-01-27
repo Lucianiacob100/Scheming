@@ -64,10 +64,9 @@
  ;;fast swap -- dependent on the i2
  (define (swap i1 i2 matrix)
       (define (check-ind)
-          (let ((len (length matrix))) 
-              (or
-                (> i1 i2)  
-                (or (> i1 len) (> i2 len)))))
+       (let ((ml (- (length matrix) 1)))
+             (or (> i1 ml) (> i2 ml))
+              ))
       (define t1 '())
       (define t2  '())
       (define (find-var i1 i2 matrix)
@@ -79,10 +78,12 @@
              (begin (set! t2 (car matrix))))
             (else (find-var (- i1 1) (- i2 1) (cdr matrix)))))
      (if (check-ind)
-         (error "incorrect indeces")             
-         (begin (find-var i1 i2 matrix)
-                (list-set! matrix i1 t2)
-                (list-set! matrix i2 t1))))
+         (error "incorrect indeces")
+         (if (> i1 i2)
+              (swap i2 i1 matrix )            
+              (begin (find-var i1 i2 matrix)
+                     (list-set! matrix i1 t2)
+                     (list-set! matrix i2 t1)))))
 
   (define (interchange-rows i1 i2 matrix)
            (if (is-matrix? matrix)
@@ -249,7 +250,7 @@
 
  (define (search-nz  sri matrix)
       (if (= sri (length matrix))
-          #t
+          'done_nz
            (let* ((mat (drop matrix sri))
                   (temp-ci (search-in-ls (lambda (x) (not (= x 0))) (car mat)   0)))
               (if (not (= temp-ci -1))
@@ -260,36 +261,37 @@
           (map (lambda (row)
                   (list-ref row ind))
                m))
-          
-              
- ;;transform a matrix to row form echelon
- (define (row-form-ech r matrix)
-    (if (= r (length matrix))
+     
+    ;;
+
+    (define (row-form-ech r matrix)
+    (if (= r  (length matrix) )
         'done
-        (let* (
-               (prc (search-nz 0 matrix))
+        (let* ( 
+               (prc (search-nz r matrix))
                (ri (car prc))
                (ci (cadr prc))
                (cln (col ci matrix)))
            (begin (if (not (= ri r))
                   (interchange-rows r ri matrix))
-                  (let ((pivot (list-ref (list-ref matrix r) ci)))
+                  (let* ((pivot (list-ref (list-ref matrix r) ci))
+                         (cln2 (drop cln (1+ r)))) ;;? 
                       (if (not (= pivot 1))
-                          (*row r matrix (/ 1 pivot))))
-                 (define (next-step)
-                     (let* ((cln2 (drop cln (1+ r)))
-                            (i  (search-in-ls (lambda (x) (not (= x 0))) cln2 0))
-                            (new-ri (+ r i 1)))
-                         (if (= i -1)
-                             (row-form-ech (1+ r) matrix)
-                             (let ((n (list-ref matrix new-ri))
-                                   (v (list-ref n ci))) 
-                                 (begin     
-                                   (+adr r n (* -1 v) matrix)
-                                   (next-step))))))
-                  (next-step)))))
-      
-             
+                          (*row r matrix (/ 1 pivot)))
+                      (define (reduce-to-zero column ind)
+                          (cond ((null? column)
+                                 (row-form-ech (1+ r) matrix))
+                                ((zero? (car column))
+                                 (reduce-to-zero (cdr column) (1+ ind)))
+                                (else 
+                                  (let* ((new-ri (+ r ind 1))
+                                         (n (list-ref matrix new-ri))
+                                         (v (list-ref n ci)))
+                                      (begin (+adr r new-ri (* -1 v) matrix) 
+                                             (reduce-to-zero (cdr column) (1+ ind))))))) 
+                   (reduce-to-zero cln2 0))))))                     
+                                             
+ 
   ;;searching for an element in a matrix
  (define (search elem mat)
    (define colnr (- (length (car mat)) 1))
