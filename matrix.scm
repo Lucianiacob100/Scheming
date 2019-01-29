@@ -65,11 +65,12 @@
            ;; first time-- the first i2 elems
            ;; second time -- the first i1 elems
           (define (fast-swap i1 i2 lst)
-                (if (> i1 i2) (fast-swap i2 i1 lst))
-                (let ((ln (- (length lst) 1)))
+
+             (let ((ln (- (length lst) 1)))
                   (if (or (> i1 ln) (> i2 ln))
-                      (error "incorrect indecen")))
-                   (define i1-2 i1)
+                      (error "incorrect indeces")))
+
+                  (define i1-2 i1)
                    (define t1 0)
                    (define t2  0)
                    (define  (loop ls) 
@@ -87,10 +88,13 @@
                                    (set! i1 (- i1 1))
                                    (set! i2 (- i2 1))
                                    (cons (car ls) (loop (cdr ls)))))))
-               (begin 
+                (if (> i1 i2)
+                    (fast-swap i2 i1 lst)
+                    (begin 
                       (loop lst)
                       (list-set! lst i1-2 t2)
-                      'ok  ))           
+                      'ok  ))) 
+          
     ;; interchange any two rows
   (define (interchange-rows i1 i2 matrix)
            (if (is-matrix? matrix)
@@ -112,7 +116,7 @@
 
 ;; interchange two columns
  (define (interchange-columns i1 i2 matrix)
-      (for-each (lambda (r) (swap i1 i2 r)) matrix))   
+      (for-each (lambda (r) (fast-swap i1 i2 r)) matrix))   
 
 ;;multiply column by scalar  
  (define (*col-s matrix ind scalar)
@@ -268,10 +272,39 @@
           (map (lambda (row)
                   (list-ref row ind))
                m))
-     
-    ;;
+   
 
-    (define (row-form-ech r matrix)
+    
+  (define (count-leading-z row)
+            (cond ((null? row) 0)
+                  ((= (car row) 0)
+                   (1+ (count-leading-z (cdr row)) ))
+                  (else 0)))
+       
+
+ 
+ (define (search-suitable-row matrix r)
+     (define mat (drop matrix  (1+ r)))
+     (define row-count -1)
+      (let* ((lzr 
+               (map (lambda (row) 
+                       (begin (set! row-count (1+ row-count))
+                              (list (count-leading-z row) row-count)))
+                    mat))
+              (s-lzr (sort lzr (lambda (t1 t2) (< (car t1) (car t2)))))
+              (m  (count-leading-z (list-ref matrix r)))
+              (fl  (filter (lambda (t) (< (car t) m)) s-lzr )))
+         (if (null? fl)
+             #f
+            (1+ (cadr (car fl))))
+       ))
+   (define ssr search-suitable-row)
+ 
+ (define (not-the-last-row m i)
+      (not (= i (- (length m) 1))))
+
+
+     (define (row-form-ech r matrix)
     (if (= r  (length matrix) )
         'done
         (let* ( 
@@ -281,7 +314,16 @@
                         (car prc)))
                (ci (cadr prc))
                (cln (col ci matrix)))
-           (begin (if (not (= ri r))
+           (begin 
+              (if (and (= (car (list-ref matrix r)) 0)
+                   (not-the-last-row matrix r))
+                  (begin (let ((sr (search-suitable-row matrix r)))
+                           (if sr ;;sr ret a values means true else do nothing
+                               (begin
+                                (interchange-rows r sr matrix)
+                                (row-form-ech (1+ r) matrix) ;;?
+                                )))))
+              (if (not (= ri r))
                   (interchange-rows r ri matrix))
                   (let* ((pivot (list-ref (list-ref matrix r) ci))
                          (cln2 (drop cln (1+ r)))) ;;? 
@@ -298,9 +340,20 @@
                                          (v (list-ref n ci)))
                                       (begin (+adr r new-ri (* -1 v) matrix) 
                                              (reduce-to-zero (cdr column) (1+ ind))))))) 
-                   (reduce-to-zero cln2 0))))))                     
-                                             
- 
+                   (reduce-to-zero cln2 0))))))               
+
+
+                   (reduce-to-zero cln2 0))))))         
+
+;;;;;;;;;;;;;                                    
+ (define (count-nz-rows matrix)
+     (length (cdr (count-rows matrix (cons '() '()) 0))))
+
+ (define (rank matrix)
+     (let* ((m2 matrix)
+            (_ (row-form-ech 0 m2)))
+        (count-nz-rows m2)))
+
   ;;searching for an element in a matrix
  (define (search elem mat)
    (define colnr (- (length (car mat)) 1))
