@@ -162,7 +162,7 @@
        (error ""))
   (define (forth-condition-failed)
        (error ""))
-  (define (check-conditions matrix)
+  (define (check-conditions matrix msg)
         (let* ((p (count-rows matrix (cons '() '()) 0))
                (z (car p))
                (nz (cdr p))
@@ -237,6 +237,10 @@
                (in-order? inds)))
 
       ;;checking all the conditions
+    (cond ((eq? msg 'check-error)
+           (and (first-condition) (second-condition)
+                (third-condition) (forth-condition)))
+          ((eq? msg 'check-all)
       (if (not (first-condition))
          (first-condition-failed) 
          (if (not (second-condition))
@@ -246,7 +250,7 @@
                  (if (not (forth-condition))
                      (forth-condition-failed)
                      (display "matrix is in row-form echelon!\n")
-                   ))))                  
+                   ))))))                  
            ))
 
 
@@ -292,9 +296,8 @@
               (fl  (filter (lambda (t) (< (car t) m)) s-lzr )))
          (if (null? fl)
              #f
-            (1+ (cadr (car fl))))
+            (+ 1 r (cadr (car fl))))
        ))
-   (define ssr search-suitable-row)
  
  (define (not-the-last-row m i)
       (not (= i (- (length m) 1))))
@@ -335,6 +338,11 @@
                                              (reduce-to-zero (cdr column) (1+ ind))))))) 
                    (reduce-to-zero cln2 0))))))               
 
+ (define (row-echelon matrix)
+    (let ((rfe (row-form-ech 0 matrix)))
+        (if (check-conditions rfe 'check-error)
+             rfe
+            (row-echelon 0 rfe))))
 
 ;;;;;;;;;;;;;   rank of a matrix                                 
  (define (count-nz-rows matrix)
@@ -397,8 +405,6 @@
       )    
     ;;memoization
  (define (memoized-search ls-elem matrix)
-
-   
   (define (memo e)
     (let ((already-searched? #f)
           (result     #f))
