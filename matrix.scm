@@ -273,16 +273,12 @@
                   (list-ref row ind))
                m))
    
-
-    
   (define (count-leading-z row)
             (cond ((null? row) 0)
                   ((= (car row) 0)
                    (1+ (count-leading-z (cdr row)) ))
                   (else 0)))
        
-
- 
  (define (search-suitable-row matrix r)
      (define mat (drop matrix  (1+ r)))
      (define row-count -1)
@@ -303,7 +299,6 @@
  (define (not-the-last-row m i)
       (not (= i (- (length m) 1))))
 
-
      (define (row-form-ech r matrix)
     (if (= r  (length matrix) )
         'done
@@ -319,10 +314,8 @@
                    (not-the-last-row matrix r))
                   (begin (let ((sr (search-suitable-row matrix r)))
                            (if sr ;;sr ret a values means true else do nothing
-                               (begin
                                 (interchange-rows r sr matrix)
-                                (row-form-ech (1+ r) matrix) ;;?
-                                )))))
+                                ))))
               (if (not (= ri r))
                   (interchange-rows r ri matrix))
                   (let* ((pivot (list-ref (list-ref matrix r) ci))
@@ -343,9 +336,7 @@
                    (reduce-to-zero cln2 0))))))               
 
 
-                   (reduce-to-zero cln2 0))))))         
-
-;;;;;;;;;;;;;                                    
+;;;;;;;;;;;;;   rank of a matrix                                 
  (define (count-nz-rows matrix)
      (length (cdr (count-rows matrix (cons '() '()) 0))))
 
@@ -440,7 +431,6 @@
              (zip-with  l1 l2 +))
              
 
-
  (define (add-matrices m1 m2)
      (if (addable m1 m2)
        (if (null? m1)
@@ -457,13 +447,10 @@
                   (length m2)))))
 
 
-
-
 ;;multiplying two matrices
 (define (multipliable? m1 m2)
      (= (length (car m1))
         (length m2 )))
-
 
 (define (mult-matrices m1 m2)
      (if (null? m1)
@@ -642,8 +629,6 @@
                             (mult-ls-by-seq (cdr l) rest)))))    
         (mult-ls-by-seq l (alter-seq starting-seq)) )
 
- ;;
-
  (define (is-n-mat? matrix o)
       (and (is-square-matrix? matrix)
            (=  (length  matrix) o)))
@@ -652,7 +637,6 @@
       (- (* (caar matrix) (cadar (cdr matrix)))
          (* (cadar matrix) (caadr matrix))))
 
- 
  (define (delete-column matrix ind)
       (map (lambda (line)
                  (del-i line ind))
@@ -665,9 +649,6 @@
                    (cdr l)
                    (cons (car l) (del-i (cdr l) (- i 1))))))
        
-   
-
-
  (define (all-minors matrix)
     (letrec ((cut-m (cdr matrix))
              (len (- (length (car matrix)) 1))
@@ -683,6 +664,8 @@
      (define (first-line-minors matrix)
                (car (all-minors matrix)))
 
+
+;;main function which calculates the determinant for a n X n matrix
 (define (determinant matrix)
     (cond ((is-n-mat? matrix 3) (det-ord-3 matrix))
           ((is-n-mat? matrix 2) (det-ord-2 matrix))
@@ -691,7 +674,6 @@
                                        (first-line-minors matrix))))
                      (sum-of-products line det-list )))))
  
-
 
  ;;triangle rule for 3 X 3
   (define (det-ord-3 matrix )
