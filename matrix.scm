@@ -304,11 +304,11 @@
 
      (define (row-form-ech r matrix)
     (if (= r  (length matrix) )
-        'done
+        matrix
         (let* ( 
                (prc (search-nz r matrix))
                (ri (if (equal? prc 'done) 
-                        (error 'done) 
+                       matrix ;;matrix
                         (car prc)))
                (ci (cadr prc))
                (cln (col ci matrix)))
@@ -353,6 +353,59 @@
             (_ (row-form-ech 0 m2)))
         (count-nz-rows m2)))
 
+;;;;;;;;;;;;;;;;;;;;;GAUSSIAN ELIMINATION
+                   ;A    B  -> [A|B]
+ (define (augm-mat mat res-m)
+      (zip-with mat res-m append))
+    
+   (define (init ls)
+         (cond ((null? ls) (error "cannot int from list"))
+               ((= (length ls) 1)
+                ls)
+               ((= (length ls) 2)
+                (list (car ls)))
+               (else
+                 (cons (car ls) (init (cdr ls))))))
+   
+
+ (define (split aug-m)
+     (map init aug-m))
+  )
+          
+     (define (list-coeffs row)
+         (if (null? row)
+           '()
+           (if   (= (car row) 0)
+                 (list-coeffs (cdr row))
+                 row)))      
+                       
+   (define (make-sum l1 l2)
+         (apply +
+                (zip-with l1 l2 *)))
+         
+        (define variable-solutions '())
+
+        (define (solve-row row)
+              (let* ((result (last row))
+                     (coeffs  (list-coeffs row))
+                     (var-coeff (car coeffs))
+                     (already-coeffs (init (drop coeffs 1))))
+                 (cond ((null? variable-solutions)
+                        (set! variable-solutions (list result)))
+                       (else
+                       (set! variable-solutions
+                        (append (list (/  (- result
+                                             (make-sum already-coeffs variable-solutions))
+                                          var-coeff))
+                                 variable-solutions))))))
+                                  
+ (define (solve-system matrix)
+     (let* ((m1 (row-echelon matrix))
+            (mf (reverse m1)))
+        (for-each solve-row matrix )))                               
+                 
+                     
+ 
   ;;searching for an element in a matrix
  (define (search elem mat)
    (define colnr (- (length (car mat)) 1))
@@ -552,11 +605,6 @@
 
 ;;first diagonal of a matrix represented as a list of vectors
 
-  (define (is-square-matrix? matrix)
-      (=
-          (length (car matrix))
-          (length matrix )))
-
 
  (define (major-diag2 matrix counter fn )
     (let* ( (l1 (length (car matrix)))
@@ -596,7 +644,26 @@
         (if (list? (car m))
             (car m)
             m)))
-         
+ ;;
+;;;;;;;;;;;;;;;;;
+
+  (define (is-square-matrix? matrix)
+      (=
+          (length (car matrix))
+          (length matrix )))
+
+
+ (define (superdiagonal matrix) ;;all element above main diagonal in a square matrix
+    (define si 0)
+    (define ei (- (length matrix) 1))
+     (if (is-square-matrix? matrix)
+         (map (lambda (row)
+                (begin (set! si (1+ si))
+                       (drop row si)))
+             matrix)
+         (error "not a square matrix")))
+
+      
 ;;matrices are equal?
 
 
