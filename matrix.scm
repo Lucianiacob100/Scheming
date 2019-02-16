@@ -302,6 +302,7 @@
  (define (not-the-last-row m i)
       (not (= i (- (length m) 1))))
 
+ ;;initial reduction    
      (define (row-form-ech r matrix)
     (if (= r  (length matrix) )
         matrix
@@ -344,22 +345,52 @@
              rfe
             (row-echelon 0 rfe))))
 
+;;further reduce Gauss-Jordan elimination - reduced row form echelon
+  ;;indexed backwards for each loop
+ (define (backw-for-each fn lst st en ind) ;;ind
+     (if (= st en)
+         (fn (list-ref lst st))
+         (begin
+           (fn (list-ref lst  st))
+           (backw-for-each fn lst (- st 1) en (- ind 1)))))
+ 
+
+ (define (gj-elim matrix)
+     (let* ((start (- (length matrix) 1))  
+            (end    1)
+            (current start )                                             
+            (i     (- (length (car matrix)) 2)))
+         ;;main back loop
+           (backw-for-each  
+                (lambda (row)
+                    (set! current (- start 1))
+                    (backw-for-each 
+                         (lambda (row)
+                            (begin 
+                            (+adr start  current (* -1 (list-ref row i))  matrix)
+                            (set! current (- current 1)))
+                          )                
+                         matrix (- start 1) 0 100 )) ;;end of inside loop
+                matrix start end i)))
+      (define m '((1 2 -1 6) (0 1 6 -4) (0 0 1 -1)))
+
+                   
 ;;;;;;;;;;;;;   rank of a matrix                                 
  (define (count-nz-rows matrix)
      (length (cdr (count-rows matrix (cons '() '()) 0))))
 
  (define (rank matrix)
      (let* ((m2 matrix)
-            (_ (row-form-ech 0 m2)))
+            (_ (row-echelon m2)))
         (count-nz-rows m2)))
 
-;;;;;;;;;;;;;;;;;;;;;GAUSSIAN ELIMINATION
+;;;;;;;;;;;;;;;;;;;;; Equation solver
                    ;A    B  -> [A|B]
  (define (augm-mat mat res-m)
       (zip-with mat res-m append))
     
    (define (init ls)
-         (cond ((null? ls) (error "cannot int from list"))
+         (cond ((null? ls) (error "cannot init from list"))
                ((= (length ls) 1)
                 ls)
                ((= (length ls) 2)
@@ -394,9 +425,9 @@
                         (set! variable-solutions (list result)))
                        (else
                        (set! variable-solutions
-                        (append (list (/  (- result
+                        (append (list  (- result
                                              (make-sum already-coeffs variable-solutions))
-                                          var-coeff))
+                                         )
                                  variable-solutions))))))
                                   
  (define (solve-system matrix)
@@ -456,6 +487,7 @@
                         (search-next  e -1 -1) )))))
            (search-through-lines elem row-ind col-ind)
       )    
+
     ;;memoization
  (define (memoized-search ls-elem matrix)
   (define (memo e)
