@@ -1,9 +1,6 @@
 
    ;;some functions on matrices
-
- 
-
-  (define (evaluate expr)
+(define (evaluate expr)
         (eval expr user-initial-environment))
 
  (define (eval-bool-ls lsb)
@@ -153,15 +150,7 @@
                  (count-rows (cdr matrix) (cons (ap z ind) nz) next ))
                 (else 
                  (count-rows (cdr matrix) (cons z (ap nz ind)) next ))))))
- ;;defining error messages
-  (define (first-condition-failed)
-       (error ""))
-  (define (second-condition-failed)
-       (error ""))
-  (define (third-condition-failed)
-       (error ""))
-  (define (forth-condition-failed)
-       (error ""))
+
   (define (check-conditions matrix msg)
         (let* ((p (count-rows matrix (cons '() '()) 0))
                (z (car p))
@@ -242,13 +231,17 @@
                 (third-condition) (forth-condition)))
           ((eq? msg 'check-all)
       (if (not (first-condition))
-         (first-condition-failed) 
+         (error "All nonzero rows should precede  zero rows") 
          (if (not (second-condition))
-             (second-condition-failed)
+             (error "The leftmost nonzero element of each nonzero row should be unity.")
              (if (not (third-condition))
-                 (third-condition-failed)
+                 (error "If the first nonzero element of a row appears in column c, 
+                        then all elements in column с
+                        in succeeding rows should be zero.")
                  (if (not (forth-condition))
-                     (forth-condition-failed)
+                     (error "The first nonzero element of any nonzero row should appears 
+                           in a later column (further to the right)
+                           than the first nonzero element of any preceding row.")
                      (display "matrix is in row-form echelon!\n")
                    ))))))                  
            ))
@@ -347,34 +340,50 @@
 
 ;;further reduce Gauss-Jordan elimination - reduced row form echelon
   ;;indexed backwards for each loop
- (define (backw-for-each fn lst st en ind) ;;ind
+  (define (init ls)
+         (cond ((null? ls) (error "cannot init from list"))
+               ((= (length ls) 1)
+                ls)
+               ((= (length ls) 2)
+                (list (car ls)))
+               (else
+                 (cons (car ls) (init (cdr ls))))))
+ 
+ (define (backw-for-each fn lst st en ) 
      (if (= st en)
-         (fn (list-ref lst st))
+         (fn (list-ref lst en))
          (begin
            (fn (list-ref lst  st))
-           (backw-for-each fn lst (- st 1) en (- ind 1)))))
+           (backw-for-each fn lst (- st 1) en ))))
  
-
  (define (gj-elim matrix)
      (let* ((start (- (length matrix) 1))  
             (end    1)
-            (current start )                                             
-            (i     (- (length (car matrix)) 2)))
-         ;;main back loop
-           (backw-for-each  
-                (lambda (row)
-                    (set! current (- start 1))
-                    (backw-for-each 
+            (current (- start 1 ))                                             
+           )
+          (backw-for-each 
                          (lambda (row)
                             (begin 
-                            (+adr start  current (* -1 (list-ref row i))  matrix)
+                            (+adr start  current (* -1 (list-ref row start))  matrix)
                             (set! current (- current 1)))
-                          )                
-                         matrix (- start 1) 0 100 )) ;;end of inside loop
-                matrix start end i)))
+                           )                
+                         matrix (- start 1) 0  )))
+
+ 
+   (define (gauss-jordan matrix)
+              (if (= (length matrix) 2)
+                  (begin (gj-elim matrix)
+                         matrix)
+                  (let* ((f-elim (gj-elim matrix))
+                         (rest   (init matrix))
+                         (l-row  (last matrix)))
+                (append (gauss-jordan rest)
+                        (list l-row)))))
+            
       (define m '((1 2 -1 6) (0 1 6 -4) (0 0 1 -1)))
 
-                   
+
+        
 ;;;;;;;;;;;;;   rank of a matrix                                 
  (define (count-nz-rows matrix)
      (length (cdr (count-rows matrix (cons '() '()) 0))))
@@ -388,21 +397,10 @@
                    ;A    B  -> [A|B]
  (define (augm-mat mat res-m)
       (zip-with mat res-m append))
-    
-   (define (init ls)
-         (cond ((null? ls) (error "cannot init from list"))
-               ((= (length ls) 1)
-                ls)
-               ((= (length ls) 2)
-                (list (car ls)))
-               (else
-                 (cons (car ls) (init (cdr ls))))))
-   
-
+  
  (define (split aug-m)
      (map init aug-m))
-  )
-          
+
      (define (list-coeffs row)
          (if (null? row)
            '()
